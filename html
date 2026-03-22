@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מנקה תמלילי Panopto</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f6f9;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+        select, textarea, button {
+            width: 100%;
+            font-size: 16px;
+            font-family: inherit;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 200px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+        }
+        .controls > div {
+            flex: 1;
+        }
+        .copy-btn {
+            background-color: #2ecc71;
+        }
+        .copy-btn:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>מנקה תמלילי Panopto</h1>
+    
+    <div class="container">
+        <label for="lecturerSelect">בחר/י מרצה:</label>
+        <select id="lecturerSelect">
+            <option value="שם המרצה הראשונה">שם המרצה הראשונה</option>
+            <option value="שם המרצה השנייה">שם המרצה השנייה</option>
+            <option value="דוקטור כהן">דוקטור כהן</option>
+        </select>
+
+        <label for="inputText">הדבק/י את התמליל המלא כאן:</label>
+        <textarea id="inputText" placeholder="הדבק את הטקסט הגולמי מפנופטו..."></textarea>
+
+        <button onclick="processTranscript()">נקה וסדר טקסט</button>
+
+        <label for="outputText">תוצאה (טקסט רציף ונקי):</label>
+        <textarea id="outputText" readonly placeholder="הטקסט הנקי יופיע כאן..."></textarea>
+        
+        <button class="copy-btn" onclick="copyResult()">העתק תוצאה</button>
+    </div>
+
+    <script>
+        function processTranscript() {
+            const rawText = document.getElementById('inputText').value;
+            const targetLecturer = document.getElementById('lecturerSelect').value.trim();
+            
+            if (!rawText) return;
+
+            const lines = rawText.split('\n');
+            let cleanTextArray = [];
+            let isCapturing = false;
+
+            // תבנית לזיהוי חותמות זמן (למשל 0:00, 12:34, 1:02:05)
+            const timecodeRegex = /\b\d{1,2}:\d{2}(?::\d{2})?\b/;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (line === '') continue; // דילוג על שורות ריקות
+
+                // אם השורה מכילה את שם המרצה שבחרנו - מתחילים ללכוד
+                if (line.includes(targetLecturer)) {
+                    isCapturing = true;
+                    continue; // לא מכניסים את שם המרצה עצמו לטקסט
+                }
+
+                // אם מצאנו חותמת זמן והשורה הקודמת או הנוכחית לא שייכת למרצה, זה דובר אחר
+                // מפסיקים ללכוד עד שנראה שוב את שם המרצה שלנו
+                if (timecodeRegex.test(line) && line.length < 20) {
+                    // אנחנו מדלגים על חותמות זמן בכל מקרה
+                    continue; 
+                }
+
+                // בדיקה לדובר אחר: שורה קצרה בלי נקודה/פסיק בסוף שלא מכילה את המרצה שלנו
+                // (התאמה למבנה שבו השם מופיע שורה מעל חותמת הזמן)
+                if (line.length < 30 && !line.includes(targetLecturer) && !line.endsWith('.') && !line.endsWith(',')) {
+                    // כנראה שם של סטודנט או מרצה אחר
+                    isCapturing = false;
+                    continue;
+                }
+
+                // אם אנחנו במצב לכידה וזו שורת טקסט רגילה
+                if (isCapturing) {
+                    cleanTextArray.push(line);
+                }
+            }
+
+            // חיבור כל השורות שנאספו עם רווח (ללא אנטרים) וניקוי רווחים כפולים
+            let continuousText = cleanTextArray.join(' ').replace(/\s+/g, ' ').trim();
+            
+            document.getElementById('outputText').value = continuousText;
+        }
+
+        function copyResult() {
+            const outputText = document.getElementById('outputText');
+            outputText.select();
+            document.execCommand('copy');
+            alert('הטקסט הועתק בהצלחה!');
+        }
+    </script>
+
+</body>
+</html>
