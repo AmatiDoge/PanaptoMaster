@@ -5,68 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מנקה תמלילי Panopto</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f3f6f9;
-            color: #333;
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        h1 {
-            color: #2c3e50;
-            text-align: center;
-        }
-        .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        label {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 8px;
-        }
-        select, textarea, button {
-            width: 100%;
-            font-size: 16px;
-            font-family: inherit;
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        textarea {
-            height: 200px;
-            resize: vertical;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .controls {
-            display: flex;
-            gap: 15px;
-        }
-        .controls > div {
-            flex: 1;
-        }
-        .copy-btn {
-            background-color: #2ecc71;
-        }
-        .copy-btn:hover {
-            background-color: #27ae60;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f6f9; color: #333; max-width: 800px; margin: 40px auto; padding: 20px; box-sizing: border-box; }
+        h1 { color: #2c3e50; text-align: center; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        label { font-weight: bold; display: block; margin-bottom: 8px; }
+        select, textarea, button { width: 100%; font-size: 16px; font-family: inherit; margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { height: 200px; resize: vertical; }
+        button { background-color: #3498db; color: white; border: none; cursor: pointer; font-weight: bold; transition: background-color 0.3s; padding: 12px; }
+        button:hover { background-color: #2980b9; }
+        .copy-btn { background-color: #2ecc71; }
+        .copy-btn:hover { background-color: #27ae60; }
     </style>
 </head>
 <body>
@@ -75,7 +23,7 @@
     
     <div class="container">
         <label for="lecturerSelect">בחר/י מרצה:</label>
-       <select id="lecturerSelect">
+        <select id="lecturerSelect">
             <option value="Osnat Yam">Osnat Yam</option>
             <option value="Iris Shachar">Iris Shachar</option>
             <option value="Dr. Zohar Rubinstein">Dr. Zohar Rubinstein</option>
@@ -100,7 +48,10 @@
             const rawText = document.getElementById('inputText').value;
             const targetLecturer = document.getElementById('lecturerSelect').value.trim();
             
-            if (!rawText) return;
+            if (!rawText) {
+                alert("לא הדבקת טקסט. אנא הדבק את התמלול לפני הלחיצה.");
+                return;
+            }
 
             const lines = rawText.split('\n');
             let cleanTextArray = [];
@@ -111,47 +62,45 @@
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
-                if (line === '') continue; // דילוג על שורות ריקות
+                if (line === '') continue;
 
-                // דילוג מוחלט על חותמות זמן
                 if (timecodeRegex.test(line) && line.length < 20) {
                     continue; 
                 }
 
-                // זיהוי החלפת דובר: השורה מסתיימת בנקודתיים והיא קצרה (עד 50 תווים כדי לא לתפוס משפטים ארוכים)
-                // או שהיא שווה בדיוק לשם המרצה (למקרה שאין נקודתיים)
-                let isSpeakerLine = (line.endsWith(':') && line.length < 50) || line === targetLecturer;
+                // זיהוי החלפת דובר
+                let isSpeakerLine = (line.endsWith(':') && line.length < 50) || line.includes(targetLecturer);
 
                 if (isSpeakerLine) {
                     if (line.includes(targetLecturer)) {
-                        // המרצה שלנו מדברת! מתחילים לאסוף
                         isCapturing = true;
                     } else {
-                        // מישהו אחר מדבר (סטודנט). עוצרים את האיסוף!
                         isCapturing = false;
                     }
-                    continue; // מדלגים על השורה של השם עצמו כדי שהיא לא תיכנס לטקסט הנקי
+                    continue; 
                 }
 
-                // אם אנחנו במצב לכידה (כלומר המרצה מדברת עכשיו), נוסיף את שורת הטקסט
                 if (isCapturing) {
                     cleanTextArray.push(line);
                 }
             }
 
-            // חיבור כל השורות שנאספו עם רווח (ללא אנטרים) וניקוי רווחים כפולים
             let continuousText = cleanTextArray.join(' ').replace(/\s+/g, ' ').trim();
             
+            if (continuousText === '') {
+                alert("לא נמצא טקסט עבור המרצה שנבחרה. ודא שהשם בתמלול זהה בדיוק לשם ברשימה (כולל אותיות גדולות/קטנות).");
+            }
+
             document.getElementById('outputText').value = continuousText;
         }
 
         function copyResult() {
             const outputText = document.getElementById('outputText');
+            if (!outputText.value) return;
             outputText.select();
             document.execCommand('copy');
             alert('הטקסט הועתק בהצלחה!');
         }
     </script>
-
 </body>
 </html>
