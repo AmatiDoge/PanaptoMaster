@@ -106,35 +106,34 @@
             let cleanTextArray = [];
             let isCapturing = false;
 
-            // תבנית לזיהוי חותמות זמן (למשל 0:00, 12:34, 1:02:05)
+            // תבנית לזיהוי חותמות זמן
             const timecodeRegex = /\b\d{1,2}:\d{2}(?::\d{2})?\b/;
 
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
                 if (line === '') continue; // דילוג על שורות ריקות
 
-                // אם השורה מכילה את שם המרצה שבחרנו - מתחילים ללכוד
-                if (line.includes(targetLecturer)) {
-                    isCapturing = true;
-                    continue; // לא מכניסים את שם המרצה עצמו לטקסט
-                }
-
-                // אם מצאנו חותמת זמן והשורה הקודמת או הנוכחית לא שייכת למרצה, זה דובר אחר
-                // מפסיקים ללכוד עד שנראה שוב את שם המרצה שלנו
+                // דילוג מוחלט על חותמות זמן
                 if (timecodeRegex.test(line) && line.length < 20) {
-                    // אנחנו מדלגים על חותמות זמן בכל מקרה
                     continue; 
                 }
 
-                // בדיקה לדובר אחר: שורה קצרה בלי נקודה/פסיק בסוף שלא מכילה את המרצה שלנו
-                // (התאמה למבנה שבו השם מופיע שורה מעל חותמת הזמן)
-                if (line.length < 30 && !line.includes(targetLecturer) && !line.endsWith('.') && !line.endsWith(',')) {
-                    // כנראה שם של סטודנט או מרצה אחר
-                    isCapturing = false;
-                    continue;
+                // זיהוי החלפת דובר: השורה מסתיימת בנקודתיים והיא קצרה (עד 50 תווים כדי לא לתפוס משפטים ארוכים)
+                // או שהיא שווה בדיוק לשם המרצה (למקרה שאין נקודתיים)
+                let isSpeakerLine = (line.endsWith(':') && line.length < 50) || line === targetLecturer;
+
+                if (isSpeakerLine) {
+                    if (line.includes(targetLecturer)) {
+                        // המרצה שלנו מדברת! מתחילים לאסוף
+                        isCapturing = true;
+                    } else {
+                        // מישהו אחר מדבר (סטודנט). עוצרים את האיסוף!
+                        isCapturing = false;
+                    }
+                    continue; // מדלגים על השורה של השם עצמו כדי שהיא לא תיכנס לטקסט הנקי
                 }
 
-                // אם אנחנו במצב לכידה וזו שורת טקסט רגילה
+                // אם אנחנו במצב לכידה (כלומר המרצה מדברת עכשיו), נוסיף את שורת הטקסט
                 if (isCapturing) {
                     cleanTextArray.push(line);
                 }
