@@ -57,38 +57,44 @@
             let cleanTextArray = [];
             let isCapturing = false;
 
-            // תבנית לזיהוי חותמות זמן
-            const timecodeRegex = /\b\d{1,2}:\d{2}(?::\d{2})?\b/;
-
             for (let i = 0; i < lines.length; i++) {
+                // מנקה רווחים מיותרים בתחילת ובסוף השורה
                 let line = lines[i].trim();
-                if (line === '') continue;
+                if (line === '') continue; // דילוג על שורות ריקות לגמרי
 
-                if (timecodeRegex.test(line) && line.length < 20) {
-                    continue; 
-                }
+                // חיפוש תבנית של "שם דובר: " בתחילת השורה
+                // מחפש טקסט קצר (עד 40 תווים) שמסתיים בנקודתיים
+                let speakerMatch = line.match(/^([^:]{2,40}):/);
 
-                // זיהוי החלפת דובר
-                let isSpeakerLine = (line.endsWith(':') && line.length < 50) || line.includes(targetLecturer);
+                if (speakerMatch) {
+                    let speakerName = speakerMatch[1].trim();
 
-                if (isSpeakerLine) {
-                    if (line.includes(targetLecturer)) {
+                    if (speakerName === targetLecturer) {
+                        // זו המרצה שלנו!
                         isCapturing = true;
+                        // חותכים החוצה את השם והנקודתיים, ולוקחים רק את הטקסט עצמו
+                        let spokenText = line.substring(speakerMatch[0].length).trim();
+                        if (spokenText) {
+                            cleanTextArray.push(spokenText);
+                        }
                     } else {
+                        // זה מישהו אחר מדבר (סטודנט או מרצה אחר). עוצרים איסוף.
                         isCapturing = false;
                     }
-                    continue; 
-                }
-
-                if (isCapturing) {
-                    cleanTextArray.push(line);
+                } else {
+                    // אין שם של דובר בתחילת השורה. 
+                    // אם אנחנו כבר באמצע הקלטה של המרצה, זה פשוט המשך המשפט שלה אז נשמור אותו.
+                    if (isCapturing) {
+                        cleanTextArray.push(line);
+                    }
                 }
             }
 
+            // חיבור הכל עם רווח וניקוי רווחים כפולים
             let continuousText = cleanTextArray.join(' ').replace(/\s+/g, ' ').trim();
             
             if (continuousText === '') {
-                alert("לא נמצא טקסט עבור המרצה שנבחרה. ודא שהשם בתמלול זהה בדיוק לשם ברשימה (כולל אותיות גדולות/קטנות).");
+                alert("לא נמצא טקסט עבור המרצה שנבחרה. ודא שהשם בתמלול זהה בדיוק לשם ברשימה.");
             }
 
             document.getElementById('outputText').value = continuousText;
